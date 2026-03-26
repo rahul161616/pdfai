@@ -5,6 +5,7 @@ import com.jugger.pdfai.features.document.dto.DocumentChunkResponse;
 import com.jugger.pdfai.features.document.dto.DocumentExtractResponse;
 import com.jugger.pdfai.features.document.service.DocumentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,27 +14,29 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.print.Doc;
-
+@Log4j2
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiConstants.DOCUMENTS)
 public class DocumentController {
 
     private final DocumentService documentService;
-    @PostMapping(value = "/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DocumentExtractResponse> extractDocumentText(@RequestPart("file")MultipartFile file) {
 
+    @PostMapping(value = "/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentExtractResponse> extractDocumentText(@RequestPart("file") MultipartFile file) {
+        log.info("Received extract request for file {}", file != null ? file.getOriginalFilename() : null);
         DocumentExtractResponse response = documentService.extractText(file);
-        if (response != null) {
-            return ResponseEntity.ok(response);
-        }
-        return null;
+        log.info("Completed extract request for file {}", response.getFileName());
+        return ResponseEntity.ok(response);
     }
+
     @PostMapping(value = "/chunks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentChunkResponse> extractAndChunk(
             @RequestPart("file") MultipartFile file
     ) {
-        return ResponseEntity.ok(documentService.extractAndChunk(file));
+        log.info("Received chunk request for file {}", file != null ? file.getOriginalFilename() : null);
+        DocumentChunkResponse response = documentService.extractAndChunk(file);
+        log.info("Completed chunk request for file {} with {} chunks", response.getFileName(), response.getTotalChunks());
+        return ResponseEntity.ok(response);
     }
 }
