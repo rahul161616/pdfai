@@ -1,15 +1,18 @@
 package com.jugger.pdfai.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.OffsetDateTime;
 
+@Log4j2
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -18,7 +21,16 @@ public class GlobalExceptionHandler {
             GeneralNotFoundException exception,
             HttpServletRequest request
     ) {
+        log.warn("Resource not found for path {}: {}", request.getRequestURI(), exception.getMessage());
         return buildResponse(exception.getMessage(), HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        return handleGeneralNotFoundException(new GeneralNotFoundException("Resource not found", exception), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -26,6 +38,7 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception,
             HttpServletRequest request
     ) {
+        log.warn("Bad request for path {}: {}", request.getRequestURI(), exception.getMessage());
         return buildResponse(exception.getMessage(), HttpStatus.BAD_REQUEST, request);
     }
 
@@ -39,6 +52,7 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .orElse("Validation failed");
 
+        log.warn("Validation failed for path {}: {}", request.getRequestURI(), message);
         return buildResponse(message, HttpStatus.BAD_REQUEST, request);
     }
 
@@ -47,6 +61,7 @@ public class GlobalExceptionHandler {
             MaxUploadSizeExceededException exception,
             HttpServletRequest request
     ) {
+        log.warn("Upload exceeded size limit for path {}", request.getRequestURI());
         return buildResponse("Uploaded file exceeds the maximum allowed size", HttpStatus.PAYLOAD_TOO_LARGE, request);
     }
 
@@ -55,6 +70,7 @@ public class GlobalExceptionHandler {
             IllegalStateException exception,
             HttpServletRequest request
     ) {
+        log.error("Illegal state for path {}", request.getRequestURI(), exception);
         return buildResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
@@ -63,6 +79,7 @@ public class GlobalExceptionHandler {
             RuntimeException exception,
             HttpServletRequest request
     ) {
+        log.error("Unhandled runtime exception for path {}", request.getRequestURI(), exception);
         return buildResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
@@ -71,6 +88,7 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
+        log.error("Unhandled exception for path {}", request.getRequestURI(), exception);
         return buildResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
